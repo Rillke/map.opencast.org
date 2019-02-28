@@ -8,8 +8,6 @@ import os
 def getUserInformation():
         locations = []
 
-        geolocator = Nominatim(timeout=10, user_agent='Opencast map generator')
-
         cur = sqlite3.connect('userTest.db').cursor()
         cur.execute('select distinct country, city, organization from user')
         # DB for, fuer alle Eintraege
@@ -17,7 +15,22 @@ def getUserInformation():
             locations.append(compareCache(country, city, organization))
         return locations
 
-         
+def getGeoCode(country, city, organization, dataList):
+
+    geolocator = Nominatim(timeout=10, user_agent='Opencast map generator')
+    newLocation = geolocator.geocode(country, city, addressdetails=True) or geolocator.geocode('%s, %s' % (country, city),addressdetails=True)
+    if newLocation:
+        os.remove("cache.json")
+        f = open("cache.json","a")
+        geoLocation = {"country": country, "city": city, "organization": organization,
+                    "latitude": newLocation.latitude, "longitude": newLocation.longitude}
+        dataList.append(geoLocation)
+        f.write(json.dumps(dataList))
+        return geoLocation
+    
+    geoLocation = {"country": country, "city": city, "organization": organization,
+        "latitude": newLocation.latitude, "longitude": newLocation.longitude}
+    return geoLocation
 
 def convertGeoJson(addresses):
     features = []
@@ -34,26 +47,14 @@ def convertGeoJson(addresses):
     return {"type": "FeatureCollection", "features": features}
 
 def compareCache(country, city, organization):
-
-    geolocator = Nominatim(timeout=10, user_agent='Opencast map generator')
     check = 0
     with open('cache.json') as data_file:
         if os.stat("cache.json").st_size == 0:
-            newLocation = geolocator.geocode(country, city, addressdetails=True) or geolocator.geocode('%s, %s' % (country, city),addressdetails=True)
-            #print(newLocation)
-            if newLocation:
-                data = []
-                os.remove("cache.json")
-                f = open("cache.json","a")
-                geoLocation = {"country": country, "city": city, "organization": organization,
-                    "latitude": newLocation.latitude, "longitude": newLocation.longitude}
-                data.append(geoLocation)
-                f.write(json.dumps(data))
-                return geoLocation
+            data = []
+            return getGeoCode(country, city, organization, data)
         else:
             data = json.load(data_file)
             for item in data:
-                #print(item)
                 if city == item["city"] and country == item['country'] and organization == item['organization']:
                     check = 1
                     if check == 1:
@@ -61,16 +62,7 @@ def compareCache(country, city, organization):
                         return item
             else:
                 print("request done")
-                newLocation = geolocator.geocode(country, city, addressdetails=True) or geolocator.geocode('%s, %s' % (country, city),addressdetails=True)
-                #print(newLocation)
-                if newLocation:
-                    os.remove("cache.json")
-                    f = open("cache.json","a")
-                    geoLocation = {"country": country, "city": city, "organization": organization,
-                        "latitude": newLocation.latitude, "longitude": newLocation.longitude}
-                    data.append(geoLocation)
-                    f.write(json.dumps(data))
-                    return geoLocation
+                return getGeoCode(country, city, organization, data)
             check = 0
 
 def main():
