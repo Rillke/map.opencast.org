@@ -4,8 +4,8 @@
 # Ignore all temporary editor files
 *.swp
 *.iml
-.idea
-.vscode
+*.idea
+*.vscode
 
 # Ignore output
 adopters.geojson
