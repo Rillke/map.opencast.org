@@ -5,6 +5,7 @@
 *.swp
 *.iml
 .idea
+.vscode
 
 # Ignore output
 adopters.geojson
